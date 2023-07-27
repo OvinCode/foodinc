@@ -1,9 +1,6 @@
-from django.contrib import admin
-from django.urls import path
-from . import views
+from django.shortcuts import render
+from django.http import HttpResponse
 
-urlpatterns = [
+def home(request):
+    return render (request,'home.html')
 
-    path('admin/', admin.site.urls),
-    path('', views.home , name = 'home'),
-]
