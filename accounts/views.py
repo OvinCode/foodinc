@@ -1,14 +1,16 @@
 from email import message
 from django.shortcuts import render,redirect
 from django.http.response import HttpResponse
+
+import vendor
 from .forms import UserForm
 from . models import User, UserProfile
 from vendor.forms import VendorForm
 from django.contrib import messages,auth
-from . utils import detectUser
+from . utils import detectUser,send_verification_email
 from django.contrib.auth.decorators import login_required,user_passes_test
 from django.core.exceptions import PermissionDenied
-
+from vendor.models import Vendor
 
 
 def check_role_vendor(user):
@@ -26,7 +28,7 @@ def check_role_customer(user):
 def registerUser(request):
     if request.user.is_authenticated:
         messages.warning(request, 'You are already logged in!')
-        return redirect('dashboard')
+        return redirect('custDashboard')
     elif request.method == 'POST' :
         print(request.POST)
         form = UserForm(request.POST)
@@ -40,6 +42,8 @@ def registerUser(request):
             user = User.objects.create_user(first_name=first_name, last_name=last_name, username=username, email=email, password=password)
             user.role = User.CUSTOMER
             user.save()
+
+            send_verification_email(request,user)
             message.success(request,'Your account has been registered succesfully')
             return redirect('registerUser')
         else:
@@ -58,7 +62,7 @@ def registerVendor(request):
 
     if request.user.is_authenticated:
         messages.warning(request, 'You are already logged in!')
-        return redirect('dashboard')
+        return redirect('vendorDashboard')
     
     elif request.method == 'POST':
         form = UserForm(request.POST)
@@ -79,6 +83,9 @@ def registerVendor(request):
             user_profile = UserProfile.objects.get(user=user)
             vendor.user_profile = user_profile
             vendor.save()
+
+            send_verification_email(request,user)
+
             messages.success(request,'Your account has been registered succesfully ! Please wait for approval')
             return redirect('registerVendor')
 
@@ -97,6 +104,8 @@ def registerVendor(request):
 
     return render(request,'accounts/registerVendor.html',context)
 
+def activate(request,uidb64,token):
+    return
 
 def login(request):
 
@@ -140,7 +149,11 @@ def custDashboard(request):
 @login_required(login_url='login')
 @user_passes_test(check_role_vendor)
 def vendorDashboard(request):
-    return render(request, 'accounts/vendorDashboard.html')
+    vendor=Vendor.objects.get(user=request.user)
+    context = {
+        'vendor' : vendor,
+    }
+    return render(request, 'accounts/vendorDashboard.html',context)
 
 
     
